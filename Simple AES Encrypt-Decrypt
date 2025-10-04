@@ -1,0 +1,83 @@
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from cryptography.fernet import Fernet
+import os
+
+# --- Crypto Functions ---
+def generate_key():
+    key = Fernet.generate_key()
+    with open("fernet.key", "wb") as key_file:
+        key_file.write(key)
+    messagebox.showinfo("Key Generated", "Key saved as fernet.key")
+
+def load_key():
+    try:
+        return open("fernet.key", "rb").read()
+    except FileNotFoundError:
+        messagebox.showerror("Error", "Key file not found. Generate a key first.")
+        return None
+
+def encrypt_file():
+    filepath = filedialog.askopenfilename()
+    if not filepath:
+        return
+
+    key = load_key()
+    if not key:
+        return
+    f = Fernet(key)
+
+    with open(filepath, "rb") as file:
+        data = file.read()
+
+    encrypted = f.encrypt(data)
+
+    out_path = filepath + ".enc"
+    with open(out_path, "wb") as file:
+        file.write(encrypted)
+
+    messagebox.showinfo("Success", f"File encrypted and saved as:\n{out_path}")
+
+def decrypt_file():
+    filepath = filedialog.askopenfilename()
+    if not filepath:
+        return
+
+    key = load_key()
+    if not key:
+        return
+    f = Fernet(key)
+
+    with open(filepath, "rb") as file:
+        encrypted_data = file.read()
+
+    try:
+        decrypted = f.decrypt(encrypted_data)
+    except Exception:
+        messagebox.showerror("Error", "Decryption failed. Wrong key or corrupted file.")
+        return
+
+    out_path = os.path.splitext(filepath)[0] + ".dec"
+    with open(out_path, "wb") as file:
+        file.write(decrypted)
+
+    messagebox.showinfo("Success", f"File decrypted and saved as:\n{out_path}")
+
+# --- UI Setup ---
+root = tk.Tk()
+root.title("Secure File Encryptor")
+root.geometry("350x200")
+
+title = tk.Label(root, text="🔒 Simple AES File Tool", font=("Arial", 14))
+title.pack(pady=10)
+
+btn_key = tk.Button(root, text="Generate Key", command=generate_key, width=20)
+btn_key.pack(pady=5)
+
+btn_enc = tk.Button(root, text="Encrypt File", command=encrypt_file, width=20)
+btn_enc.pack(pady=5)
+
+btn_dec = tk.Button(root, text="Decrypt File", command=decrypt_file, width=20)
+btn_dec.pack(pady=5)
+
+root.mainloop()
